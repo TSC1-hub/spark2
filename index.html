@@ -140,6 +140,26 @@ body::before {
 
 .login-error.visible { display: block; }
 
+.rgpd-notice {
+  margin-top: 16px;
+  padding: 10px 12px;
+  background: rgba(61,92,58,0.06);
+  border: 1px solid rgba(61,92,58,0.15);
+  border-radius: 10px;
+  font-size: 0.72rem;
+  color: var(--mid);
+  line-height: 1.5;
+  text-align: left;
+}
+.rgpd-notice strong { color: var(--moss); }
+
+.rgpd-checkbox {
+  display: flex; align-items: flex-start; gap: 8px;
+  margin-top: 10px; font-size: 0.72rem; color: var(--mid);
+  text-align: left; cursor: pointer;
+}
+.rgpd-checkbox input { margin-top: 2px; flex-shrink: 0; accent-color: var(--moss); }
+
 /* ── VUE 2 : WORKSPACE ── */
 #vue2 { display: none; flex-direction: column; height: 100vh; }
 #vue2.visible { display: flex; }
@@ -877,7 +897,17 @@ header {
     <input type="text" id="codeEquipe" class="login-input"
       placeholder="Code d'équipe (ex: TEAM-42)"
       onkeydown="if(event.key==='Enter') document.getElementById('btnRejoindre').click()">
-    <button id="btnRejoindre" class="login-btn">Rejoindre l'Atelier 🌱</button>
+    <!-- RGPD Notice -->
+    <div class="rgpd-notice">
+      <strong>🔒 Confidentialité & données</strong><br>
+      Vos échanges avec SPARK sont sauvegardés pour assurer la continuité de votre projet pendant <strong>9 mois</strong>, puis supprimés automatiquement. Les données sont hébergées en Europe (France).<br><br>
+      ⚠️ <strong>Ne saisissez aucune donnée personnelle</strong> (prénom, nom, photo de visage) dans le chat.
+    </div>
+    <label class="rgpd-checkbox">
+      <input type="checkbox" id="rgpdConsent">
+      <span>J'ai lu et j'accepte les conditions d'utilisation et la politique de confidentialité.</span>
+    </label>
+    <button id="btnRejoindre" class="login-btn" style="margin-top:12px">Rejoindre l'Atelier 🌱</button>
     <p id="erreurConnexion" class="login-error"></p>
   </div>
 </div>
@@ -1399,10 +1429,22 @@ Instruction : Générer la SECTION HTML finale du Jour 5 (id="jour5-convaincre")
         // ─────────────────────────────────────────────
         // VUE 1 : CONNEXION
         // ─────────────────────────────────────────────
+        // RGPD : désactiver le bouton si consentement non coché
+        document.getElementById('rgpdConsent').addEventListener('change', function() {
+            document.getElementById('btnRejoindre').disabled = !this.checked;
+        });
+        document.getElementById('btnRejoindre').disabled = true;
+
         document.getElementById('btnRejoindre').addEventListener('click', async function () {
             const codeEquipe = document.getElementById('codeEquipe').value.trim();
             const erreurEl   = document.getElementById('erreurConnexion');
             erreurEl.classList.remove('visible');
+
+            if (!document.getElementById('rgpdConsent').checked) {
+                erreurEl.textContent = "Veuillez accepter les conditions d'utilisation.";
+                erreurEl.classList.add('visible');
+                return;
+            }
 
             if (!codeEquipe) {
                 erreurEl.textContent = "Veuillez saisir un code d'équipe.";
