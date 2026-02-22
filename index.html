@@ -9,8 +9,9 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
+        // BLOC DE CONFIGURATION CORRIGÉ
         window.APP_CONFIG = {
-            SUPABASE_URL:      "https://vjrvefbdpuoyqpepykam.supabase.co",
+            SUPABASE_URL: "https://vjrvefbdpuoyqpepykam.supabase.co",
             SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZqcnZlZmJkcHVveXFwZXB5a2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1Nzk5MjEsImV4cCI6MjA4NzE1NTkyMX0.T3MPWPUetfg-hEdD6O69muJX_y87j0kTvP4_vEOSLD0"
         };
     </script>
@@ -75,7 +76,6 @@
         #codeDisplay { flex: 1; padding: 2rem; font-family: 'Courier New', monospace; font-size: 0.9rem; overflow-y: auto; white-space: pre-wrap; line-height: 1.5; }
         .btn-close-code { cursor: pointer; color: #999; }
 
-        /* --- LOGIN --- */
         #overlay-login { position: fixed; inset: 0; background: var(--bg-creme); z-index: 200; display: flex; align-items: center; justify-content: center; }
         .login-card { background: white; padding: 3rem; border-radius: 30px; box-shadow: var(--shadow-soft); width: 100%; max-width: 450px; text-align: center; border: 1px solid var(--border-soft); }
         .login-card h1 { font-family: 'Fraunces', serif; font-size: 2rem; margin-bottom: 1rem; }
@@ -132,7 +132,7 @@
     </div>
 
     <script>
-        // Correction 401 : Ajout de persistSession: false
+        // Correction 401 & Syntax :
         const supabaseClient = supabase.createClient(
             window.APP_CONFIG.SUPABASE_URL, 
             window.APP_CONFIG.SUPABASE_ANON_KEY,
@@ -149,7 +149,6 @@
         const LYNX_SM = "⚡";
         const ELEVE_SM = "👤";
 
-        // RÉINTÉGRATION DU MASTER PROMPT D'ORIGINE
         const MASTER_PROMPT = `
         TU ES SPARK, le coach IA de l'agence LYNX. 
         Ton but : guider des étudiants dans la création d'une landing page via le Design Thinking.
@@ -170,30 +169,34 @@
         5. Ton ton est encourageant, professionnel (agence) et dynamique.
         `;
 
-        const STEPS = [
-            "Introduction & Brief", "Interview Utilisateur", "Carte d'Empathie",
-            "Point of View (POV)", "How Might We (HMW)", "Architecture (Sitemap)",
-            "Idéation (Brainstorming)", "DA & Moodboard", "Wireframe (Squelette)",
-            "Section HERO", "Section Fonctionnalités", "Preuve Sociale",
-            "Conversion (Formulaire)", "Pied de page (Footer)", "Lancement Final"
-        ];
+        const STEPS = ["Introduction & Brief", "Interview Utilisateur", "Carte d'Empathie", "Point of View (POV)", "How Might We (HMW)", "Architecture (Sitemap)", "Idéation (Brainstorming)", "DA & Moodboard", "Wireframe (Squelette)", "Section HERO", "Section Fonctionnalités", "Preuve Sociale", "Conversion (Formulaire)", "Pied de page (Footer)", "Lancement Final"];
 
         document.getElementById('btnLogin').addEventListener('click', async () => {
-            const code = document.getElementById('inputCodeEquipe').value.toUpperCase().trim();
+            const input = document.getElementById('inputCodeEquipe');
+            const code = input.value.toUpperCase().trim();
             const { data, error } = await supabaseClient.from('projets_spark').select('*').eq('code_equipe', code).single();
-            if (error || !data) { document.getElementById('loginError').style.display = 'block'; return; }
+            
+            if (error || !data) {
+                document.getElementById('loginError').style.display = 'block';
+                return;
+            }
+            
             codeEquipeCourant = code;
             historiqueChat = data.historique_chat || [];
             sectionsHtml = data.sections_html || {};
             daProjet = data.da_projet || "";
             etapeActive = data.etape_active || 0;
             xp = data.xp || 0;
+            
             document.getElementById('overlay-login').style.display = 'none';
             initialiserInterface();
         });
 
         function initialiserInterface() {
             mettreAJourSidebar(etapeActive);
+            const zone = document.getElementById('zoneMessages');
+            zone.innerHTML = ""; 
+            
             if (historiqueChat.length === 0) {
                 envoyerMessageSpark("Bonjour l'équipe ! Je suis SPARK ⚡, votre coach chez LYNX. Prêts à transformer votre idée en une landing page de folie ? Commençons par le brief : quel est le nom de votre projet et quel problème réglez-vous ?");
             } else {
@@ -207,15 +210,20 @@
             const texte = input.value.trim();
             if (!texte) return;
             input.value = "";
+            
             afficherMessage("Vous", texte, "eleve");
             historiqueChat.push({ auteur: "Vous", contenu: texte, type: "eleve" });
+            
             const typingId = afficherTyping();
             try {
                 const reponseSpark = await appellerGemini();
                 supprimerTyping(typingId);
                 envoyerMessageSpark(reponseSpark);
                 sauvegarderSupabase();
-            } catch (err) { supprimerTyping(typingId); }
+            } catch (err) {
+                supprimerTyping(typingId);
+                console.error(err);
+            }
         }
 
         function envoyerMessageSpark(texte) {
@@ -236,11 +244,10 @@
 
         async function appellerGemini() {
             let contents = [];
-            // Optimisation Quota : Nettoyage de l'historique HTML
             for (const msg of historiqueChat.slice(-10)) {
                 let texte = msg.contenu;
                 if (msg.type === 'spark') {
-                    texte = texte.replace(/```html[\s\S]*?```/gi, '[Code HTML déjà généré]');
+                    texte = texte.replace(/```html[\s\S]*?```/gi, '[Code HTML généré]');
                 }
                 contents.push({ role: msg.type === 'eleve' ? 'user' : 'model', parts: [{ text: texte }] });
             }
@@ -250,7 +257,7 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     contents, 
-                    system_instruction: { parts: [{ text: MASTER_PROMPT + `\nÉTAT ACTUEL : Étape ${etapeActive + 1} (${STEPS[etapeActive]}).` }] } 
+                    system_instruction: { parts: [{ text: MASTER_PROMPT + `\nÉTAT ACTUEL : Étape ${etapeActive + 1}` }] } 
                 })
             });
             const data = await response.json();
@@ -306,9 +313,7 @@
             await supabaseClient.from('projets_spark').update({
                 historique_chat: historiqueChat,
                 sections_html: sectionsHtml,
-                da_projet: daProjet,
-                etape_active: etapeActive,
-                xp: xp
+                etape_active: etapeActive
             }).eq('code_equipe', codeEquipeCourant);
         }
         
