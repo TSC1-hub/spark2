@@ -1472,8 +1472,13 @@ Instruction : Générer la SECTION HTML finale du Jour 5 (id="jour5-convaincre")
                     setting: 'app.current_team',
                     value: codeEquipe,
                     is_local: true
-                }).catch(() => {}); // silencieux si la fonction n'existe pas encore
-
+                try {
+                    await supabaseClient.rpc('set_config', {
+                        setting: 'app.current_team',
+                        value: codeEquipe,
+                        is_local: true
+                    });
+                } catch (_) {}
                 // ✅ MODE ADMIN : le facilitateur voit toutes les équipes
                 const estAdmin = (codeEquipe === 'TSC2023i@');
 
