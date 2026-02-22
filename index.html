@@ -9,7 +9,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
-        // BLOC DE CONFIGURATION CORRIGÉ
         window.APP_CONFIG = {
             SUPABASE_URL: "https://vjrvefbdpuoyqpepykam.supabase.co",
             SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZqcnZlZmJkcHVveXFwZXB5a2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1Nzk5MjEsImV4cCI6MjA4NzE1NTkyMX0.T3MPWPUetfg-hEdD6O69muJX_y87j0kTvP4_vEOSLD0"
@@ -132,7 +131,6 @@
     </div>
 
     <script>
-        // Correction 401 & Syntax :
         const supabaseClient = supabase.createClient(
             window.APP_CONFIG.SUPABASE_URL, 
             window.APP_CONFIG.SUPABASE_ANON_KEY,
@@ -174,19 +172,29 @@
         document.getElementById('btnLogin').addEventListener('click', async () => {
             const input = document.getElementById('inputCodeEquipe');
             const code = input.value.toUpperCase().trim();
-            const { data, error } = await supabaseClient.from('projets_spark').select('*').eq('code_equipe', code).single();
             
-            if (error || !data) {
-                document.getElementById('loginError').style.display = 'block';
+            // Correction : On retire .single() pour éviter l'erreur 406
+            const { data, error } = await supabaseClient
+                .from('projets_spark')
+                .select('*')
+                .eq('code_equipe', code);
+            
+            if (error || !data || data.length === 0) {
+                const errorDiv = document.getElementById('loginError');
+                errorDiv.innerText = "Code équipe inconnu. Vérifiez l'orthographe ou créez-le dans Supabase.";
+                errorDiv.style.display = 'block';
                 return;
             }
             
+            // On récupère le premier résultat trouvé
+            const projet = data[0];
+            
             codeEquipeCourant = code;
-            historiqueChat = data.historique_chat || [];
-            sectionsHtml = data.sections_html || {};
-            daProjet = data.da_projet || "";
-            etapeActive = data.etape_active || 0;
-            xp = data.xp || 0;
+            historiqueChat = projet.historique_chat || [];
+            sectionsHtml = projet.sections_html || {};
+            daProjet = projet.da_projet || "";
+            etapeActive = projet.etape_active || 0;
+            xp = projet.xp || 0;
             
             document.getElementById('overlay-login').style.display = 'none';
             initialiserInterface();
@@ -313,7 +321,9 @@
             await supabaseClient.from('projets_spark').update({
                 historique_chat: historiqueChat,
                 sections_html: sectionsHtml,
-                etape_active: etapeActive
+                da_projet: daProjet,
+                etape_active: etapeActive,
+                xp: xp
             }).eq('code_equipe', codeEquipeCourant);
         }
         
