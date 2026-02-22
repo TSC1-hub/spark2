@@ -1467,6 +1467,47 @@ Instruction : Générer la SECTION HTML finale du Jour 5 (id="jour5-convaincre")
 
                 codeEquipeCourant = codeEquipe;
 
+                // ✅ SÉCURITÉ RLS : définit la variable de session pour le filtrage Supabase
+                await supabaseClient.rpc('set_config', {
+                    setting: 'app.current_team',
+                    value: codeEquipe,
+                    is_local: true
+                }).catch(() => {}); // silencieux si la fonction n'existe pas encore
+
+                // ✅ MODE ADMIN : le facilitateur voit toutes les équipes
+                const estAdmin = (codeEquipe === 'TSC2023i@');
+
+                if (estAdmin) {
+                    // Chargement de toutes les équipes
+                    const { data: allData, error: allError } = await supabaseClient
+                        .from('projets_spark')
+                        .select('code_equipe, etape_active, xp, da_projet');
+                    if (allError) throw allError;
+
+                    // Afficher un tableau de bord admin simplifié
+                    document.getElementById('vue1').classList.add('hidden');
+                    const adminDiv = document.createElement('div');
+                    adminDiv.style.cssText = 'position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;padding:40px;font-family:DM Sans,sans-serif;';
+                    adminDiv.innerHTML = `
+                        <div style="background:white;border-radius:20px;padding:36px;max-width:700px;width:100%;box-shadow:0 8px 40px rgba(44,58,40,0.12);">
+                            <div style="font-family:Fraunces,serif;font-size:1.6rem;font-weight:900;color:var(--moss);margin-bottom:4px;">🌲 Vue Facilitateur</div>
+                            <div style="font-size:0.85rem;color:var(--light);margin-bottom:24px;">${(allData||[]).length} équipe(s) active(s)</div>
+                            <div style="display:flex;flex-direction:column;gap:10px;max-height:60vh;overflow-y:auto;">
+                                ${(allData||[]).map(eq => `
+                                    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--warm);border-radius:12px;border:1px solid var(--border);">
+                                        <div>
+                                            <div style="font-weight:600;color:var(--text);">${eq.code_equipe}</div>
+                                            <div style="font-size:0.78rem;color:var(--light);">Jour ${eq.etape_active || 0}/5 · ${eq.xp || 0} XP</div>
+                                        </div>
+                                        <div style="font-size:1.2rem;">${['🌱','🔍','✏️','🔨','📢','🏆'][eq.etape_active||0]}</div>
+                                    </div>`).join('')}
+                            </div>
+                            <button onclick="location.reload()" style="margin-top:24px;width:100%;padding:12px;background:var(--moss);color:white;border:none;border-radius:10px;font-size:1rem;cursor:pointer;">↩ Retour</button>
+                        </div>`;
+                    document.body.appendChild(adminDiv);
+                    return;
+                }
+
                 if (!data) {
                     await supabaseClient.from('projets_spark').insert([{
                         code_equipe: codeEquipe,
