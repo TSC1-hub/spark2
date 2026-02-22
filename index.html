@@ -1468,10 +1468,6 @@ Instruction : Générer la SECTION HTML finale du Jour 5 (id="jour5-convaincre")
                 codeEquipeCourant = codeEquipe;
 
                 // ✅ SÉCURITÉ RLS : définit la variable de session pour le filtrage Supabase
-                await supabaseClient.rpc('set_config', {
-                    setting: 'app.current_team',
-                    value: codeEquipe,
-                    is_local: true
                 try {
                     await supabaseClient.rpc('set_config', {
                         setting: 'app.current_team',
@@ -1479,8 +1475,9 @@ Instruction : Générer la SECTION HTML finale du Jour 5 (id="jour5-convaincre")
                         is_local: true
                     });
                 } catch (_) {}
+
                 // ✅ MODE ADMIN : le facilitateur voit toutes les équipes
-                const estAdmin = (codeEquipe === 'TSC2023i@');
+                const estAdmin = (codeEquipe === 'ADMIN-SPARK-2025');
 
                 if (estAdmin) {
                     // Chargement de toutes les équipes
