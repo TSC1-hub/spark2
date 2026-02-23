@@ -514,4 +514,436 @@
             .logo-area { margin-bottom: 0; }
             #nav-steps { display: none; }
             .sidebar-bottom { margin-top: 0; padding-top: 0; border: none; display: flex; }
-            #code-overlay { width
+            #code-overlay { width: 100%; }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="overlay-login">
+        <div id="particles-container" class="login-particles"></div>
+        
+        <div class="login-card">
+            <div class="logo-lynx">LYNX.</div>
+            <h1>Bienvenue dans le Lab.</h1>
+            <p>Saisissez votre code d'accès équipe pour rejoindre le coach SPARK ⚡.</p>
+            
+            <div class="login-input-group">
+                <input type="text" id="inputCodeEquipe" class="login-input" placeholder="EX: GROUPE1" maxlength="15" autocomplete="off">
+            </div>
+            
+            <button id="btnLogin" class="login-btn">
+                <span>DÉMARRER LE PROJET</span>
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            
+            <div id="loginError">Code équipe introuvable.</div>
+        </div>
+    </div>
+
+    <div id="sidebar">
+        <div class="logo-area">
+            <div class="logo-lynx">LYNX.</div>
+        </div>
+        <div class="nav-title">Votre Parcours</div>
+        <div id="nav-steps">
+        </div>
+        <div class="sidebar-bottom">
+            <div class="nav-item" onclick="toggleCode()">
+                <div class="nav-icon">💻</div>
+                <div>Code HTML <span id="code-badge" style="background:var(--lynx-orange); color:white; font-size:0.7rem; padding:2px 6px; border-radius:10px; margin-left:5px; display:none;">New</span></div>
+            </div>
+            <div class="nav-item" onclick="window.location.reload()">
+                <div class="nav-icon">🔄</div>
+                <div>Déconnexion</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="main-content">
+        <div id="zoneMessages">
+        </div>
+        
+        <div id="input-area-container">
+            <div id="input-wrapper">
+                <input type="text" id="inputMessage" placeholder="Répondez à SPARK ou posez une question..." autocomplete="off">
+                <button id="btnEnvoyer" title="Envoyer">
+                    <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="code-overlay">
+        <div class="code-header">
+            <div class="code-title">📄 <span style="margin-left:8px;">Fichier source : index.html</span></div>
+            <div class="code-actions">
+                <button class="btn-icon" onclick="copierCode()">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                    Copier
+                </button>
+                <button class="btn-icon" onclick="toggleCode()">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                </button>
+            </div>
+        </div>
+        <div class="code-content-wrapper">
+            <pre id="codeDisplay">&lt;!-- Le code généré apparaîtra ici --&gt;</pre>
+        </div>
+    </div>
+
+    <script>
+        function genererParticules() {
+            const container = document.getElementById('particles-container');
+            for(let i=0; i<15; i++) {
+                const p = document.createElement('div');
+                p.className = 'particle';
+                const size = Math.random() * 40 + 10;
+                p.style.width = size + 'px';
+                p.style.height = size + 'px';
+                p.style.left = Math.random() * 100 + '%';
+                p.style.animationDuration = (Math.random() * 10 + 10) + 's';
+                p.style.animationDelay = (Math.random() * 5) + 's';
+                container.appendChild(p);
+            }
+        }
+        genererParticules();
+
+        // Sécurité et correction 401
+        const supabaseClient = supabase.createClient(
+            window.APP_CONFIG.SUPABASE_URL, 
+            window.APP_CONFIG.SUPABASE_ANON_KEY,
+            { auth: { persistSession: false } }
+        );
+
+        let codeEquipeCourant = "";
+        let historiqueChat    = [];
+        let sectionsHtml      = {}; 
+        let daProjet          = "";
+        let etapeActive       = 0;
+        let xp                = 0;
+
+        const LYNX_SM = "⚡";
+        const ELEVE_SM = "👤";
+
+        // MASTER PROMPT COMPLET ET ORIGINAL
+        const MASTER_PROMPT = `
+        TU ES SPARK, le coach IA de l'agence LYNX. 
+        Ton but : guider des étudiants dans la création d'une landing page via le Design Thinking.
+        Tu es mentor, pas exécutant. Tu poses des questions, tu valides, et tu co-construis le HTML.
+
+        DÉROULÉ (5 JOURS - 15 ACTIONS) :
+        Jour 1 (Empathie) : 1.1 Brief, 1.2 Interview, 1.3 Carte Empathie.
+        Jour 2 (Définition) : 2.4 POV, 2.5 HMW, 2.6 Sitemap.
+        Jour 3 (Idéation) : 3.7 Brainstorming, 3.8 DA & Moodboard, 3.9 Wireframe HTML (Structure).
+        Jour 4 (Prototypage) : 4.10 Hero, 4.11 Features, 4.12 Social Proof.
+        Jour 5 (Test & Final) : 5.13 Formulaire, 5.14 Footer, 5.15 Revue finale.
+
+        REGLES CRITIQUES :
+        1. Une action à la fois.
+        2. Quand tu valides une étape qui produit du contenu visuel, tu GÉNÈRES le bloc HTML correspondant.
+        3. Le HTML doit être propre (Tailwind CSS) et contenu entre des balises \`\`\`html ... \`\`\`.
+        4. À chaque étape, tu peux demander à l'utilisateur de cliquer sur "Voir le code" pour admirer l'avancée.
+        5. Ton ton est encourageant, professionnel (agence) et dynamique.
+        `;
+
+        const STEPS = [
+            "Introduction & Brief", "Interview Utilisateur", "Carte d'Empathie", 
+            "Point of View (POV)", "How Might We (HMW)", "Architecture (Sitemap)", 
+            "Idéation", "DA & Moodboard", "Wireframe (Structure)", 
+            "Section HERO", "Section Fonctionnalités", "Preuve Sociale", 
+            "Conversion (Formulaire)", "Pied de page (Footer)", "Revue Finale"
+        ];
+
+        // Sécurité login : array au lieu de single()
+        document.getElementById('btnLogin').addEventListener('click', async () => {
+            const codeInput = document.getElementById('inputCodeEquipe').value.toUpperCase().trim();
+            if(!codeInput) return;
+
+            const btn = document.getElementById('btnLogin');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = 'Connexion... <span class="typing-dots" style="display:inline-flex;margin-left:10px;"><span></span><span></span><span></span></span>';
+            btn.disabled = true;
+
+            const { data, error } = await supabaseClient
+                .from('projets_spark')
+                .select('*')
+                .eq('code_equipe', codeInput);
+
+            if (error || !data || data.length === 0) {
+                const errorDiv = document.getElementById('loginError');
+                errorDiv.innerText = "Code équipe inconnu. Vérifiez l'orthographe ou créez-le dans Supabase.";
+                errorDiv.style.display = 'block';
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                return;
+            }
+
+            const projet = data[0];
+
+            codeEquipeCourant = codeInput;
+            historiqueChat    = projet.historique_chat || [];
+            sectionsHtml      = projet.sections_html   || {};
+            daProjet          = projet.da_projet       || "";
+            etapeActive       = projet.etape_active    || 0;
+            xp                = projet.xp              || 0;
+
+            document.getElementById('overlay-login').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('overlay-login').style.display = 'none';
+                initialiserInterface();
+            }, 500);
+        });
+
+        document.getElementById('inputCodeEquipe').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') document.getElementById('btnLogin').click();
+        });
+
+        function initialiserInterface() {
+            mettreAJourSidebar(etapeActive);
+            document.getElementById('zoneMessages').innerHTML = ""; 
+            
+            if (historiqueChat.length === 0) {
+                const msgIntro = "Bonjour l'équipe ! 🚀 Je suis SPARK ⚡, votre Lead Designer chez LYNX. Prêts à créer une landing page qui déchire ?\n\nPour commencer la phase d'**Empathie**, parlez-moi de votre projet : **Quel est le nom de votre produit/service et quel problème précis essayez-vous de résoudre pour vos utilisateurs ?**";
+                envoyerMessageSpark(msgIntro);
+            } else {
+                historiqueChat.forEach(msg => afficherMessage(msg.auteur, msg.contenu, msg.type));
+                mettreAJourCodeCumule(false);
+            }
+        }
+
+        async function envoyerMessageEleve() {
+            const input = document.getElementById('inputMessage');
+            const texte = input.value.trim();
+            const btnEnvoyer = document.getElementById('btnEnvoyer');
+            
+            if (!texte) return;
+            
+            input.value = "";
+            input.disabled = true;
+            btnEnvoyer.disabled = true;
+            
+            afficherMessage("Vous", texte, "eleve");
+            historiqueChat.push({ auteur: "Vous", contenu: texte, type: "eleve" });
+            
+            const typingId = afficherTyping();
+            
+            try {
+                const reponseSpark = await appellerGemini();
+                supprimerTyping(typingId);
+                
+                envoyerMessageSpark(reponseSpark);
+                
+                if(reponseSpark.toLowerCase().includes("étape suivante") || reponseSpark.toLowerCase().includes("parfait")) {
+                    if(etapeActive < STEPS.length - 1) etapeActive++;
+                }
+                mettreAJourSidebar(etapeActive);
+                
+                sauvegarderSupabase();
+            } catch (err) {
+                supprimerTyping(typingId);
+                console.error("Erreur appel IA:", err);
+                envoyerMessageSpark("Oups, j'ai eu un petit bug de connexion (Erreur réseau). Tu peux reformuler ?");
+            } finally {
+                input.disabled = false;
+                btnEnvoyer.disabled = false;
+                input.focus();
+            }
+        }
+
+        function envoyerMessageSpark(texte) {
+            afficherMessage("SPARK ⚡", texte, "spark");
+            historiqueChat.push({ auteur: "SPARK ⚡", contenu: texte, type: "spark" });
+            extraireEtSauvegarderHTML(texte);
+        }
+
+        function afficherMessage(auteur, contenu, type) {
+            const zone = document.getElementById('zoneMessages');
+            const div = document.createElement('div');
+            div.className = `msg-container ${type}`;
+            
+            let htmlFormate = contenu
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\n/g, '<br>');
+
+            if (type === 'spark') {
+                htmlFormate = htmlFormate.replace(/```html[\s\S]*?```/g, '<div style="background:#EEF2FF; padding:10px; border-radius:8px; border-left:4px solid var(--spark-blue); margin:10px 0; font-family:monospace; font-size:0.9rem;">&lt;/&gt; Code généré avec succès. Cliquez sur l\'onglet Code HTML à gauche !</div>');
+                htmlFormate = htmlFormate.replace(/```/g, '');
+            }
+
+            div.innerHTML = `
+                <div class="msg-av">${type==='spark'?LYNX_SM:ELEVE_SM}</div>
+                <div class="msg-content">
+                    <span class="msg-author">${auteur}</span>
+                    <div class="msg-text">${htmlFormate}</div>
+                </div>
+            `;
+            zone.appendChild(div);
+            
+            setTimeout(() => {
+                zone.scrollTo({
+                    top: zone.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }, 50);
+        }
+
+        async function appellerGemini() {
+            const historiqueRecent = historiqueChat.slice(-6).map(msg => {
+                let texte = msg.contenu;
+                if (msg.type === 'spark') {
+                    texte = texte.replace(/```html[\s\S]*?```/gi, '[Code HTML généré et sauvegardé]');
+                }
+                return {
+                    role: msg.type === 'eleve' ? 'user' : 'model',
+                    parts: [{ text: texte }]
+                };
+            });
+
+            const promptSysteme = MASTER_PROMPT + `\n\nÉTAT ACTUEL : Tu discutes avec l'équipe "${codeEquipeCourant}". Vous êtes à l'étape ${etapeActive + 1} : ${STEPS[etapeActive]}.`;
+
+            const response = await fetch(`${window.APP_CONFIG.SUPABASE_URL}/functions/v1/gemini-proxy`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    contents: historiqueRecent, 
+                    system_instruction: { 
+                        parts: [{ text: promptSysteme }] 
+                    } 
+                })
+            });
+            
+            if(!response.ok) throw new Error("Erreur réseau API Gemini");
+            
+            const data = await response.json();
+            return data.candidates[0].content.parts[0].text;
+        }
+
+        function extraireEtSauvegarderHTML(texte) {
+            const regex = /```html([\s\S]*?)```/g;
+            let match;
+            let codeTrouve = false;
+            
+            while ((match = regex.exec(texte)) !== null) { 
+                sectionsHtml[etapeActive] = match[1].trim(); 
+                codeTrouve = true;
+            }
+            
+            if(codeTrouve) {
+                mettreAJourCodeCumule(true);
+            }
+        }
+
+        function mettreAJourCodeCumule(showBadge = false) {
+            let codeFinal = `<!DOCTYPE html>\n<html lang="fr">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <script src="https://cdn.tailwindcss.com"><\/script>\n  <title>Projet ${codeEquipeCourant}</title>\n</head>\n<body>\n`;
+            
+            Object.keys(sectionsHtml).sort((a,b) => a-b).forEach(key => {
+                codeFinal += `\n  \n  ${sectionsHtml[key].replace(/\n/g, '\n  ')}\n`;
+            });
+            
+            codeFinal += `\n</body>\n</html>`;
+            
+            const escapedCode = codeFinal.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            document.getElementById('codeDisplay').innerHTML = escapedCode;
+
+            if(showBadge) {
+                const badge = document.getElementById('code-badge');
+                badge.style.display = 'inline-block';
+                badge.animate([
+                    { transform: 'scale(1)' },
+                    { transform: 'scale(1.2)' },
+                    { transform: 'scale(1)' }
+                ], { duration: 300, iterations: 3 });
+            }
+        }
+
+        function toggleCode() { 
+            document.getElementById('code-overlay').classList.toggle('open'); 
+            document.getElementById('code-badge').style.display = 'none'; 
+        }
+
+        function copierCode() {
+            let codeFinal = `<!DOCTYPE html>\n<html lang="fr">\n<head>\n  <meta charset="UTF-8">\n  <script src="https://cdn.tailwindcss.com"><\/script>\n</head>\n<body>\n`;
+            Object.keys(sectionsHtml).sort((a,b) => a-b).forEach(key => {
+                codeFinal += `\n\n${sectionsHtml[key]}\n`;
+            });
+            codeFinal += `\n</body>\n</html>`;
+
+            navigator.clipboard.writeText(codeFinal).then(() => {
+                alert("Code HTML copié dans le presse-papier !");
+            });
+        }
+
+        function mettreAJourSidebar(idx) {
+            const container = document.getElementById('nav-steps');
+            container.innerHTML = "";
+            STEPS.forEach((step, i) => {
+                const div = document.createElement('div');
+                
+                let etatClass = '';
+                let icone = '○';
+                
+                if (i < idx) {
+                    etatClass = 'done';
+                    icone = '✓';
+                } else if (i === idx) {
+                    etatClass = 'active';
+                    icone = '⚡';
+                }
+
+                div.className = `nav-item ${etatClass}`;
+                div.innerHTML = `
+                    <div class="nav-icon" style="${i<idx?'color:var(--spark-blue);':''}">${icone}</div>
+                    <div>${step}</div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        document.getElementById('btnEnvoyer').addEventListener('click', envoyerMessageEleve);
+        document.getElementById('inputMessage').addEventListener('keypress', (e) => { 
+            if(e.key === 'Enter' && !document.getElementById('btnEnvoyer').disabled) envoyerMessageEleve(); 
+        });
+
+        function afficherTyping() {
+            const zone = document.getElementById('zoneMessages');
+            const id   = 'typing-' + Date.now();
+            const div  = document.createElement('div');
+            div.id = id;
+            div.className = 'msg-container spark typing-bubble';
+            div.innerHTML = `
+                <div class="msg-av">${LYNX_SM}</div>
+                <div class="msg-content">
+                    <div class="typing-dots"><span></span><span></span><span></span></div>
+                </div>`;
+            zone.appendChild(div);
+            zone.scrollTop = zone.scrollHeight;
+            return id;
+        }
+
+        function supprimerTyping(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        }
+
+        async function sauvegarderSupabase() {
+            if (!codeEquipeCourant) return;
+            const { error } = await supabaseClient
+                .from('projets_spark')
+                .update({
+                    historique_chat: historiqueChat,
+                    sections_html:   sectionsHtml,
+                    da_projet:       daProjet,
+                    etape_active:    etapeActive,
+                    xp:              xp
+                })
+                .eq('code_equipe', codeEquipeCourant);
+            if (error) console.error('Erreur sauvegarde Supabase :', error);
+        }
+
+        mettreAJourSidebar(0);
+
+    </script>
+</body>
+</html>
