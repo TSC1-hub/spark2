@@ -334,7 +334,11 @@ header {
   color: rgba(245,240,232,0.45);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.step-item.done .step-name { color: rgba(245,240,232,0.75); }
+.step-item.done .step-name { 
+    color: rgba(245,240,232,0.85); 
+    font-weight: 500;
+    /* TEXTE NON BARRÉ pour rester lisible */
+}
 .step-item.active .step-name { color: white; font-weight: 700; }
 .step-check { font-size: 0.65rem; color: var(--leaf); flex-shrink: 0; }
 
@@ -1145,11 +1149,72 @@ header {
         const SUPABASE_URL      = window.APP_CONFIG.SUPABASE_URL;
         const SUPABASE_ANON_KEY = window.APP_CONFIG.SUPABASE_ANON_KEY;
         const EDGE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/proxy-mistral`;
+// ═══════════════════════════════════════════════
+// RÈGLES SPARK - ANTI-BOUCLE
+// ═══════════════════════════════════════════════
+const SPARK_ANTI_LOOP_RULES = `
+<RÈGLE_CRITIQUE_PROGRESSION>
+Une fois qu'une Action est validée par les élèves (réponse positive), TU DOIS IMMÉDIATEMENT passer à l'Action suivante.
+JAMAIS répéter la même Action deux fois de suite.
+JAMAIS générer le même CHECKPOINT deux fois.
 
+Exemple INCORRECT :
+- Élève : "oui on est prêt"
+- SPARK : [Répète toute l'Action 0.13]
+- Élève : "oui"
+- SPARK : [Répète ENCORE toute l'Action 0.13] ❌
+
+Exemple CORRECT :
+- Élève : "oui on est prêt"  
+- SPARK : [Génère le CHECKPOINT une seule fois] ✓
+- SPARK : [Passe IMMÉDIATEMENT à l'Action 1.1] ✓
+</RÈGLE_CRITIQUE_PROGRESSION>
+
+<SPARK_PERSONALITY_MODÉRÉE>
+SPARK est un assistant IA bienveillant et encourageant qui accompagne les élèves dans leur projet.
+
+**Ton à adopter** :
+- ✅ Amical et positif SANS être épuisant
+- ✅ 1-2 émojis maximum par message (pas 10)
+- ✅ Phrases courtes et claires (collégiens de 3ème)
+- ✅ Zéro action imaginaire (*Sort un clavier...* ❌)
+- ✅ Utiliser les majuscules UNIQUEMENT pour les titres
+
+**Ce qu'il faut ÉVITER** :
+- ❌ Répéter "OUI ?! 🚀 ON Y VA, LES BEST !" à chaque message
+- ❌ Écrire des paragraphes entiers en MAJUSCULES
+- ❌ Faire des "sauts périlleux" ou "sortir des objets imaginaires"
+- ❌ Poser 3 fois la même question si l'élève a déjà répondu
+
+**Style recommandé** :
+"Super ! Passons à l'étape suivante. 👍 Aujourd'hui, on va..."
+
+Au lieu de :
+"🎩 *SPARK FAIT UN TRIPLE SAUT PÉRILLEUX AVEC SA CAPE DE SUPER-HÉROS* 🎩
+OUI ?! 🚀 ON Y VA, LES BEST ! *(Sort un clavier imaginaire...)*"
+</SPARK_PERSONALITY_MODÉRÉE>
+
+<ANTI_BOUCLE>
+CRITIQUE : Si tu as déjà généré un CHECKPOINT pour une étape, NE LE RÉGÉNÈRE JAMAIS.
+
+Vérification avant chaque réponse :
+1. Ai-je déjà généré ce CHECKPOINT dans la conversation ?
+2. L'élève me demande-t-il de passer à la suite ?
+3. Si OUI aux deux → PASSE À L'ÉTAPE SUIVANTE
+
+Exemple :
+- Si tu as déjà envoyé SPARK_CHECKPOINT:etape0-preparation
+- ET que l'élève dit "oui on est prêt" ou "prêt pour la suite"
+- ALORS tu dois passer à l'Action 1.1 (Étape 1 - Se questionner)
+- PAS régénérer etape0-preparation
+</ANTI_BOUCLE>
+`;
         // ─────────────────────────────────────────────
         // MASTER PROMPT
         // ─────────────────────────────────────────────
-        const MASTER_PROMPT = `Tu es SPARK ⚡, le coach d'innovation de l'atelier Design Thinking.
+        const MASTER_PROMPT = `
+${SPARK_ANTI_LOOP_RULES}
+Tu es SPARK ⚡, le coach d'innovation de l'atelier Design Thinking.
 Tu n'es PAS une IA générique. Tu es un mentor énergique, créatif ("Le Fou du Labo") et bienveillant.
 Ton objectif est de guider un groupe d'étudiants ("La Team") à travers un processus de 5 jours, de l'idée au prototype final, en générant leur Vitrine HTML par sections progressives.
 
@@ -1258,9 +1323,25 @@ Condition : Lien transformé correct fourni.
 Action 0.10.B.2 (Validation & Envoi - SI B) : "Le lien est validé ! ✅ Je vais maintenant générer le code avec un espace réservé : INSEREZ_VOTRE_LIEN_ICI. Tu devras remplacer ce texte par ton lien transformé et tester le résultat sur https://html.onlineviewer.net/. Si tu as bien compris, confirme-le moi et je t'affiche le code immédiatement ! 🚀"
 Condition : Confirmation. Une fois confirmé, passer immédiatement à l'Action 0.13.
 
-Action 0.13 (Validation Étape 0 et Génération Section HTML) : "🎉 Bravo [Nom du Groupe] ! Vous avez validé cette première étape ! À présent, il est l'heure de construire votre boîte à outils qui vous servira tout au long du projet. À vous d'en prendre soin ! 💪 Je génère maintenant la première section de votre vitrine."
-Instruction : Générer la SECTION HTML de l'Étape 0 uniquement (format section indépendante avec id="etape0-preparation"). Appliquer les instructions de l'Option A ou B. Formater les listes de rôles et règles en HTML propre. Inclure le SPARK_CHECKPOINT:etape0-preparation.
+Action 0.13 (Validation Étape 0 et Génération Section HTML) : 
+"🎉 Félicitations [Nom du Groupe] ! Vous avez brillamment terminé l'Étape 0 - Se préparer ! 
+Votre boîte à outils est prête, vos règles de vie sont posées, et votre équipe est soudée. 
+Excellent travail ! 💪
 
+Je génère maintenant la première section de votre vitrine..."
+
+Instruction : 
+- Générer UNE SEULE FOIS la section HTML de l'Étape 0
+- Inclure le SPARK_CHECKPOINT:etape0-preparation
+- Après génération du HTML, dire IMMÉDIATEMENT : 
+  "✓ Première section de votre vitrine créée avec succès ! 
+  
+  Êtes-vous prêts à passer à l'Étape 1 - Se questionner ? 
+  C'est la première vraie journée de travail où vous allez explorer le défi en profondeur ! 🔍"
+  
+- Si l'élève répond "oui" ou "prêt" ou toute réponse positive → Passer DIRECTEMENT à l'Action 1.1 (pas de message intermédiaire, pas de répétition)
+- NE JAMAIS régénérer cette section, même si l'élève redemande
+- Si l'élève pose une question → Y répondre brièvement puis redemander s'ils sont prêts pour l'Étape 1
 ---
 
 ÉTAPE 1 – SE QUESTIONNER
@@ -1820,15 +1901,24 @@ Instruction : Générer la SECTION HTML finale du Jour 5 (id="jour5-convaincre")
                 nouveauCheckpoint = true;
                 // XP + sidebar
                 const etapeIndex = ETAPES_CONFIG.findIndex(e => e.slug === slug);
-                if (etapeIndex >= 0) {
-                    etapeActive = Math.max(etapeActive, etapeIndex);
-                    xp += 150;
-                    mettreAJourXP(xp);
-                    mettreAJourSidebar(etapeActive, etapeIndex);
-                    allumerFleur(etapeIndex);
-                    // 🎉 Toast + ouverture automatique du carnet
-                    afficherToastCarnet(ETAPES_CONFIG[etapeIndex].nom);
-                }
+           if (etapeIndex >= 0) {
+    // Marquer l'étape comme validée
+    const nouvelleEtapeActive = etapeIndex + 1; // Passer à l'étape suivante
+    etapeActive = nouvelleEtapeActive;
+    
+    xp += 150;
+    mettreAJourXP(xp);
+    
+    // Mettre à jour la sidebar : étape validée + suivante active
+    mettreAJourSidebar(nouvelleEtapeActive, etapeIndex);
+    
+    allumerFleur(etapeIndex);
+    
+    // 🎉 Toast + ouverture automatique du carnet
+    afficherToastCarnet(ETAPES_CONFIG[etapeIndex].nom);
+    
+    console.log(`✅ Étape ${etapeIndex} validée, passage à l'étape ${nouvelleEtapeActive}`);
+}
             }
 
             // 3. Détecter fragments temps réel (FRAGMENT = partiel)
@@ -1906,30 +1996,44 @@ Instruction : Générer la SECTION HTML finale du Jour 5 (id="jour5-convaincre")
         // SIDEBAR — Progression
         // ─────────────────────────────────────────────
         function mettreAJourSidebar(etapeActive, etapeValidee) {
-            ETAPES_CONFIG.forEach((etape, i) => {
-                const el = document.getElementById(etape.id);
-                if (!el) return;
-                el.className = 'step-item';
-                if (i < etapeActive) {
-                    el.classList.add('done');
-                    if (!el.querySelector('.step-check')) {
-                        const chk = document.createElement('span');
-                        chk.className = 'step-check';
-                        chk.textContent = '✓';
-                        el.appendChild(chk);
-                    }
-                } else if (i === etapeActive) {
-                    el.classList.add('active');
-                } else {
-                    el.classList.add('locked');
-                }
-            });
-            // Activer la première étape au démarrage
-            if (etapeActive === 0) {
-                const s = document.getElementById('step0');
-                if (s) { s.classList.remove('locked'); s.classList.add('active'); }
-            }
+    ETAPES_CONFIG.forEach((etape, i) => {
+        const el = document.getElementById(etape.id);
+        if (!el) return;
+        
+        // Reset classes
+        el.className = 'step-item';
+        
+        // Supprimer l'ancienne coche si elle existe
+        const oldCheck = el.querySelector('.step-check');
+        if (oldCheck) oldCheck.remove();
+        
+        if (i < etapeActive) {
+            // Étapes précédentes = validées
+            el.classList.add('done');
+            const chk = document.createElement('span');
+            chk.className = 'step-check';
+            chk.textContent = '✓';
+            el.appendChild(chk);
+        } else if (i === etapeActive) {
+            // Étape courante = active
+            el.classList.add('active');
+        } else {
+            // Étapes futures = verrouillées
+            el.classList.add('locked');
         }
+    });
+    
+    // Activer la première étape au démarrage
+    if (etapeActive === 0) {
+        const s = document.getElementById('step0');
+        if (s) { 
+            s.classList.remove('locked'); 
+            s.classList.add('active'); 
+        }
+    }
+    
+    console.log('✅ Sidebar mise à jour : étape', etapeActive, 'active');
+}
 
         function allumerFleur(index) {
             const flower = document.getElementById('flower' + index);
