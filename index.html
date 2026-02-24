@@ -1144,7 +1144,7 @@ header {
         // ─────────────────────────────────────────────
         const SUPABASE_URL      = window.APP_CONFIG.SUPABASE_URL;
         const SUPABASE_ANON_KEY = window.APP_CONFIG.SUPABASE_ANON_KEY;
-        const EDGE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/gemini-proxy`;
+        const EDGE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/proxy-mistral`;
 
         // ─────────────────────────────────────────────
         // MASTER PROMPT
@@ -1751,20 +1751,17 @@ Instruction : Générer la SECTION HTML finale du Jour 5 (id="jour5-convaincre")
 
                 if (!response.ok) {
                     const errData = await response.json().catch(() => ({}));
-                    throw new Error(errData.error?.message || `Erreur serveur : ${response.status}`);
+                    throw new Error(errData.error || `Erreur serveur : ${response.status}`);
                 }
 
                 const data = await response.json();
                 let reponseSpark = null;
 
-                if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
-                    reponseSpark = data.candidates[0].content.parts[0].text;
-                } else if (data.candidates?.[0]?.finishReason) {
-                    reponseSpark = `⚠️ Réponse bloquée (raison: ${data.candidates[0].finishReason}). Réessaie.`;
-                } else if (data.promptFeedback?.blockReason) {
-                    reponseSpark = `⚠️ Message bloqué (raison: ${data.promptFeedback.blockReason}). Reformule.`;
+                // Format de réponse Mistral : data.choices[0].message.content
+                if (data.choices && data.choices[0]?.message?.content) {
+                    reponseSpark = data.choices[0].message.content;
                 } else if (data.error) {
-                    throw new Error(data.error.message || "Erreur inconnue de Gemini");
+                    throw new Error(data.error.message || "Erreur inconnue de Mistral");
                 } else {
                     reponseSpark = `⚠️ Structure inattendue : ${JSON.stringify(data).slice(0, 200)}`;
                 }
@@ -1779,7 +1776,7 @@ Instruction : Générer la SECTION HTML finale du Jour 5 (id="jour5-convaincre")
                 await sauvegarderSupabase();
 
             } catch (err) {
-                console.error('Erreur :', err);
+                console.error('Erreur Mistral :', err);
                 supprimerTyping(typingId);
                 ajouterMessageDOM('SPARK ⚡', `⚠️ Oups ! ${err.message}. Réessaie !`, 'spark');
             } finally {
