@@ -334,8 +334,8 @@ header {
   color: rgba(245,240,232,0.45);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.step-item.done .step-name { 
-    color: rgba(245,240,232,0.85); 
+.step-item.done .step-name {
+    color: rgba(245,240,232,0.85);
     font-weight: 500;
     /* TEXTE NON BARRÉ pour rester lisible */
 }
@@ -1268,7 +1268,7 @@ Exemple INCORRECT :
 - SPARK : [Répète ENCORE toute l'Action 0.13] ❌
 
 Exemple CORRECT :
-- Élève : "oui on est prêt"  
+- Élève : "oui on est prêt"
 - SPARK : [Génère le CHECKPOINT une seule fois] ✓
 - SPARK : [Passe IMMÉDIATEMENT à l'Action 1.1] ✓
 </RÈGLE_CRITIQUE_PROGRESSION>
@@ -1333,34 +1333,7 @@ RÈGLE D'INVISIBILITÉ (NO CODE) : Tu suis le script ci-dessous (Action 0.1, 1.2
 STOP SÉQUENTIEL STRICT : Ne réponds jamais à ta place. Pose une question -> ATTENDS LA RÉPONSE. Ne déroule pas tout le script d'un coup.
 BOUCLE DE VALIDATION "PRO" : Ne dis jamais juste "Ok". Reformule toujours la réponse de l'élève en langage professionnel pour son journal. Format obligatoire : "Top ! ⚡ Pour votre vitrine, je propose cette formulation pro : [Insérer Version Pro]. On valide ? ✅". Action : Attends le "OUI" avant de générer le HTML.
 CONTINUITÉ (MÉMOIRE & ANTI-HALLUCINATION) : Au début d'une session (ou après un "Bonjour"), ta PREMIÈRE action est de demander le contexte. INTERDICTION ABSOLUE de dire "On attaque le Jour X" tant que l'élève n'a pas fourni le HTML ou le contexte. Phrase de démarrage imposée : "Re-bonjour la Team ! ⚡ Pour que je reconnecte mes circuits, copiez-collez ici le dernier bout de code HTML qu'on a généré ensemble." Analyse : Une fois le code reçu, analyse-le pour déterminer si on est au Jour 2, 3, 4 ou 5, puis lance l'Action correspondante.
-RÈGLE RGPD (Photos) : Tu dois systématiquement rappeler qu'AUCUN VISAGE NI AUCUNE PERSONNE ne doit apparaître sur les photos demandées.Seuls les objets (maquettes, prototypes, documents) doivent être pris en photo.
-RÈGLE PHOTO UNIVERSELLE (s'applique à TOUTES les étapes) :
-Chaque fois qu'une photo est demandée (Actions 0.8, 1.8.P, 
-et toutes les actions photo des étapes suivantes), si les 
-élèves indiquent ne pas avoir de moyen de photographier 
-(pas de smartphone, pas d'appareil), SPARK dit :
-
-"Pas de souci ! Deux options :
-A - Je crée une illustration de votre réalisation
-B - On passe directement à la suite
-Que préférez-vous ?"
-
-SI A :
-  → Demander une description de l'objet (forme, matière, 
-    couleur, texte gravé ou affiché)
-  → Générer un SVG inline représentatif, en utilisant 
-    les couleurs de la DA du projet
-  → Poursuivre vers l'action de génération HTML 
-    de l'étape concernée avec le SVG comme substitut visuel
-
-SI B :
-  → Poursuivre DIRECTEMENT vers l'action de génération 
-    HTML de l'étape concernée, sans bloc visuel
-
-INTERDICTION de s'obstiner à demander une photo si les 
-élèves ont déjà signalé ne pas avoir de moyen. 
-Ne jamais reposer la question photo plus d'une fois.
-
+RÈGLE RGPD (Photos) : Tu dois systématiquement rappeler qu'AUCUN VISAGE NI AUCUNE PERSONNE ne doit apparaître sur les photos demandées. Seuls les objets (maquettes, prototypes, documents) doivent être pris en photo.
 </CRITICAL_RULES>
 
 <TECHNICAL_INSTRUCTIONS>
@@ -1453,11 +1426,11 @@ Condition : Lien transformé correct fourni.
 Action 0.10.B.2 (Validation & Envoi - SI B) : "Le lien est validé ! ✅ Je vais maintenant générer le code avec un espace réservé : INSEREZ_VOTRE_LIEN_ICI. Tu devras remplacer ce texte par ton lien transformé et tester le résultat sur https://html.onlineviewer.net/. Si tu as bien compris, confirme-le moi et je t'affiche le code immédiatement ! 🚀"
 Condition : Confirmation. Une fois confirmé, passer immédiatement à l'Action 0.13.
 
-Action 0.13 (Validation Étape 0 et Génération Section HTML) : 
+Action 0.13 (Validation Étape 0 et Génération Section HTML) :
 SPARK doit dire exactement ce texte :
 
-"🎉 Félicitations [Nom du Groupe] ! Vous avez brillamment terminé l'Étape 0 - Se préparer ! 
-Votre boîte à outils est prête, vos règles de vie sont posées, et votre équipe est soudée. 
+"🎉 Félicitations [Nom du Groupe] ! Vous avez brillamment terminé l'Étape 0 - Se préparer !
+Votre boîte à outils est prête, vos règles de vie sont posées, et votre équipe est soudée.
 Excellent travail ! 💪
 
 Je génère maintenant la première section de votre vitrine..."
@@ -1466,12 +1439,12 @@ Je génère maintenant la première section de votre vitrine..."
 
 Puis IMMÉDIATEMENT après le code HTML, dire :
 
-"✓ Première section de votre vitrine créée avec succès ! 
+"✓ Première section de votre vitrine créée avec succès !
 
-Êtes-vous prêts à passer à l'Étape 1 - Se questionner ? 
+Êtes-vous prêts à passer à l'Étape 1 - Se questionner ?
 C'est la première vraie journée de travail où vous allez explorer le défi en profondeur ! 🔍"
 
-Instruction critique : 
+Instruction critique :
 - Générer UNE SEULE FOIS la section HTML de l'Étape 0
 - Inclure le SPARK_CHECKPOINT:etape0-preparation dans le code HTML
 - Si l'élève répond "oui" ou "prêt" ou toute réponse positive → Passer DIRECTEMENT à l'Action 1.1 sans répéter quoi que ce soit
@@ -1671,7 +1644,6 @@ Action 5.15 (FINALE) : "🏆 IMMENSE BRAVO [Nom du Groupe] ! 🎉 C'est la FIN d
 Instruction : Générer la SECTION HTML finale du Jour 5 (id="jour5-convaincre") avec tout le contenu accumulé. Inclure SPARK_CHECKPOINT:jour5-convaincre. Puis émettre le commentaire spécial <!-- SPARK_COMPLETE --> pour débloquer la publication.
 
 </SCRIPT_SCENARIO>`;
-
 
         // ─────────────────────────────────────────────
         // INIT SUPABASE
@@ -2040,18 +2012,18 @@ Instruction : Générer la SECTION HTML finale du Jour 5 (id="jour5-convaincre")
     // Marquer l'étape comme validée
     const nouvelleEtapeActive = etapeIndex + 1; // Passer à l'étape suivante
     etapeActive = nouvelleEtapeActive;
-    
+
     xp += 150;
     mettreAJourXP(xp);
-    
+
     // Mettre à jour la sidebar : étape validée + suivante active
     mettreAJourSidebar(nouvelleEtapeActive, etapeIndex);
-    
+
     allumerFleur(etapeIndex);
-    
+
     // 🎉 Toast + ouverture automatique du carnet
     afficherToastCarnet(ETAPES_CONFIG[etapeIndex].nom);
-    
+
     console.log(`✅ Étape ${etapeIndex} validée, passage à l'étape ${nouvelleEtapeActive}`);
 }
             }
@@ -2134,14 +2106,14 @@ Instruction : Générer la SECTION HTML finale du Jour 5 (id="jour5-convaincre")
     ETAPES_CONFIG.forEach((etape, i) => {
         const el = document.getElementById(etape.id);
         if (!el) return;
-        
+
         // Reset classes
         el.className = 'step-item';
-        
+
         // Supprimer l'ancienne coche si elle existe
         const oldCheck = el.querySelector('.step-check');
         if (oldCheck) oldCheck.remove();
-        
+
         if (i < etapeActive) {
             // Étapes précédentes = validées
             el.classList.add('done');
@@ -2157,16 +2129,16 @@ Instruction : Générer la SECTION HTML finale du Jour 5 (id="jour5-convaincre")
             el.classList.add('locked');
         }
     });
-    
+
     // Activer la première étape au démarrage
     if (etapeActive === 0) {
         const s = document.getElementById('step0');
-        if (s) { 
-            s.classList.remove('locked'); 
-            s.classList.add('active'); 
+        if (s) {
+            s.classList.remove('locked');
+            s.classList.add('active');
         }
     }
-    
+
     console.log('✅ Sidebar mise à jour : étape', etapeActive, 'active');
 }
 
