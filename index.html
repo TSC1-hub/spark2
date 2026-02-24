@@ -353,6 +353,87 @@ header {
 .tree-svg { width: 100%; max-width: 150px; height: 120px; }
 
 /* AVATAR LYNX */
+/* ── BOUTON RESET ── */
+.btn-reset {
+  margin: 0 10px 10px;
+  padding: 8px 12px;
+  background: transparent;
+  border: 1px solid rgba(212,105,74,0.25);
+  border-radius: 10px;
+  color: rgba(245,240,232,0.35);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.68rem; font-weight: 500;
+  cursor: pointer;
+  display: flex; align-items: center; gap: 6px;
+  transition: all 0.25s;
+  flex-shrink: 0;
+}
+.btn-reset:hover {
+  background: rgba(212,105,74,0.12);
+  border-color: rgba(212,105,74,0.5);
+  color: var(--terra);
+}
+
+/* ── MODALE CONFIRMATION RESET ── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(26,46,23,0.6);
+  backdrop-filter: blur(4px);
+  z-index: 300;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.25s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: auto; }
+
+.modal-card {
+  background: var(--cream);
+  border-radius: 20px;
+  padding: 32px 28px;
+  width: 100%; max-width: 380px;
+  box-shadow: 0 16px 60px rgba(26,46,23,0.25);
+  border: 1px solid var(--border);
+  text-align: center;
+  transform: scale(0.9);
+  transition: transform 0.3s cubic-bezier(0.175,0.885,0.32,1.275);
+}
+.modal-overlay.open .modal-card { transform: scale(1); }
+
+.modal-icon { font-size: 2.5rem; margin-bottom: 12px; }
+
+.modal-title {
+  font-family: 'Fraunces', serif;
+  font-weight: 700; font-size: 1.2rem;
+  color: var(--text); margin-bottom: 8px;
+}
+.modal-body {
+  font-size: 0.82rem; color: var(--mid);
+  line-height: 1.6; margin-bottom: 24px;
+}
+.modal-body strong { color: var(--terra); }
+
+.modal-actions { display: flex; gap: 10px; }
+
+.modal-btn-cancel {
+  flex: 1; padding: 11px;
+  background: white; border: 1.5px solid var(--border);
+  border-radius: 12px; color: var(--mid);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.85rem; font-weight: 500;
+  cursor: pointer; transition: all 0.2s;
+}
+.modal-btn-cancel:hover { border-color: var(--sage); color: var(--sage); }
+
+.modal-btn-confirm {
+  flex: 1; padding: 11px;
+  background: var(--terra); border: none;
+  border-radius: 12px; color: white;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.85rem; font-weight: 600;
+  cursor: pointer; transition: all 0.2s;
+}
+.modal-btn-confirm:hover { background: #c4504a; transform: translateY(-1px); }
+
 .spark-avatar {
   margin: 6px 10px 10px;
   padding: 10px 12px;
@@ -918,6 +999,22 @@ header {
   </div>
 </div>
 
+<!-- ── MODALE RESET ── -->
+<div class="modal-overlay" id="modalReset">
+  <div class="modal-card">
+    <div class="modal-icon">⚠️</div>
+    <div class="modal-title">Réinitialiser le projet ?</div>
+    <div class="modal-body">
+      Cette action effacera <strong>définitivement</strong> tout l'historique de conversation, les sections de la vitrine et la progression de l'équipe.<br><br>
+      Cette action est <strong>irréversible</strong>.
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn-cancel" onclick="fermerModalReset()">✕ Annuler</button>
+      <button class="modal-btn-confirm" onclick="confirmerReset()">🗑️ Oui, tout effacer</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── VUE 1 : CONNEXION ── -->
 <div id="vue1">
   <div class="login-card">
@@ -1115,6 +1212,12 @@ header {
           </div>
         </div>
       </div>
+
+      <!-- BOUTON RESET -->
+      <button class="btn-reset" onclick="ouvrirModalReset()" title="Réinitialiser le projet">
+        <span>🗑️</span> Réinitialiser le projet
+      </button>
+
     </div>
 
     <!-- CHAT -->
@@ -2224,7 +2327,66 @@ ${allSections}
         }
 
         // ─────────────────────────────────────────────
-        // SAUVEGARDE SUPABASE
+        // RESET PROJET
+        // ─────────────────────────────────────────────
+        function ouvrirModalReset() {
+            document.getElementById('modalReset').classList.add('open');
+        }
+
+        function fermerModalReset() {
+            document.getElementById('modalReset').classList.remove('open');
+        }
+
+        async function confirmerReset() {
+            fermerModalReset();
+
+            // Réinitialiser Supabase
+            const { error } = await supabaseClient
+                .from('projets_spark')
+                .update({
+                    historique_chat: [],
+                    sections_html:   {},
+                    da_projet:       null,
+                    etape_active:    0,
+                    xp:              0
+                })
+                .eq('code_equipe', codeEquipeCourant);
+
+            if (error) {
+                console.error('Erreur reset Supabase :', error);
+                ajouterMessageDOM('SPARK ⚡', '⚠️ Erreur lors de la réinitialisation. Réessayez.', 'spark');
+                return;
+            }
+
+            // Réinitialiser l'état local
+            historiqueChat = [];
+            sectionsHtml   = {};
+            sectionsOrdre  = [];
+            daProjet       = null;
+            etapeActive    = 0;
+            xp             = 0;
+
+            // Réinitialiser l'UI
+            document.getElementById('zoneMessages').innerHTML = '';
+            document.getElementById('vitrineSections').innerHTML = '';
+            document.getElementById('vitrineTitle').textContent = 'Votre projet prend forme...';
+            document.getElementById('vitrineSubtitle').textContent = 'Au fil de votre conversation avec SPARK, votre vitrine se construira ici.';
+            document.getElementById('vitrineTeamTag').textContent = `Équipe — The Schools Challenge`;
+            document.getElementById('codeAffichage').textContent = '';
+            mettreAJourXP(0);
+            mettreAJourSidebar(0);
+            reconstruireSummary();
+
+            // Éteindre les fleurs de l'arbre
+            for (let i = 0; i <= 5; i++) {
+                const f = document.getElementById('flower' + i);
+                if (f) { f.setAttribute('r', '0'); f.setAttribute('opacity', '0'); }
+            }
+
+            // Relancer SPARK depuis le début
+            appellerGemini('');
+        }
+
         // ─────────────────────────────────────────────
         async function sauvegarderSupabase() {
             if (!codeEquipeCourant) return;
